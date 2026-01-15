@@ -2,162 +2,225 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Controle SumoBot</title>
+  <title>Sumo Control Pro</title>
 
   <style>
+    :root {
+      --bg: #0b0e13;
+      --card: rgba(20,24,32,0.7);
+      --blue: #2b6cff;
+      --green: #00ff88;
+      --red: #ff2b5c;
+    }
+
     body {
-      background: #0e0e0e;
+      background: var(--bg);
       color: white;
-      font-family: Arial;
+      font-family: system-ui;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .panel {
+      max-width: 420px;
+      width: 100%;
+      padding: 15px;
+    }
+
+    .glass {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    h2 {
       text-align: center;
-    }
-
-    button {
-      width: 90px;
-      height: 70px;
       margin: 6px;
-      font-size: 18px;
-      border-radius: 10px;
+    }
+
+    /* ===== BOTÕES ===== */
+
+    .btn {
       border: none;
-    }
-
-    .seta {
-      background: #2b6cff;
       color: white;
-    }
-
-    .mode {
-      background: #444;
-      color: white;
-      width: 140px;
-    }
-
-    .emerg {
-      background: #ff0033;
-      color: white;
-      width: 200px;
-      height: 80px;
+      border-radius: 14px;
       font-weight: bold;
-      font-size: 22px;
+      transition: .1s;
+      box-shadow: 0 6px 0 rgba(0,0,0,.3);
     }
+
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0,0,0,.3);
+    }
+
+    /* MODOS */
+    .mode {
+      width: 48%;
+      height: 54px;
+      font-size: 17px;
+    }
+
+    .auto   { background: linear-gradient(#0f6,#094); }
+    .manual { background: linear-gradient(#2b6cff,#124); }
+
+    /* DIRECIONAL */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .key {
+      height: 70px;
+      font-size: 22px;
+      background: linear-gradient(#334,#112);
+    }
+
+    .center { visibility: hidden; }
 
     #status {
-      margin-top: 10px;
-      font-size: 18px;
-      color: #0f0;
+      text-align: center;
+      padding: 6px;
+      font-size: 15px;
+      color: var(--green);
+    }
+
+    .connect {
+      width: 100%;
+      height: 50px;
+      background: linear-gradient(#666,#222);
+    }
+
+    @media (min-width:700px) {
+      .panel { max-width: 520px; }
+      .key { height: 86px; }
     }
   </style>
-
 </head>
 
 <body>
+<div class="panel">
 
-<h2>🎮 CONTROLE SUMOBOT</h2>
+  <h2>🤖 SUMO CONTROL</h2>
 
-<button class="mode" onclick="send('!B11')">MANUAL</button>
-<button class="mode" onclick="send('!B21')">AUTO</button>
+  <div class="glass">
+    <button class="btn mode manual" onclick="send('!B11')">
+      MODO MANUAL
+    </button>
 
-<h3>Movimento</h3>
+    <button class="btn mode auto" onclick="send('!B21')">
+      MODO AUTO
+    </button>
+  </div>
 
-<div>
-  <button class="seta" onclick="press('!B51')"
-          onmouseup="release()">▲</button>
+  <div class="glass">
+    <div class="grid">
+
+      <div></div>
+      <button class="btn key"
+              onmousedown="press('5')"
+              onmouseup="release('5')"
+              ontouchstart="press('5')"
+              ontouchend="release('5')">▲</button>
+      <div></div>
+
+      <button class="btn key"
+              onmousedown="press('7')"
+              onmouseup="release('7')"
+              ontouchstart="press('7')"
+              ontouchend="release('7')">◄</button>
+
+      <div class="center"></div>
+
+      <button class="btn key"
+              onmousedown="press('8')"
+              onmouseup="release('8')"
+              ontouchstart="press('8')"
+              ontouchend="release('8')">►</button>
+
+      <div></div>
+      <button class="btn key"
+              onmousedown="press('6')"
+              onmouseup="release('6')"
+              ontouchstart="press('6')"
+              ontouchend="release('6')">▼</button>
+      <div></div>
+
+    </div>
+  </div>
+
+  <div class="glass">
+    <button class="btn connect" onclick="connect()">
+      🔗 CONECTAR
+    </button>
+
+    <div id="status">Desconectado</div>
+  </div>
+
 </div>
-
-<div>
-  <button class="seta" onclick="press('!B71')"
-          onmouseup="release()">◄</button>
-
-  <button class="seta" onclick="press('!B81')"
-          onmouseup="release()">►</button>
-</div>
-
-<div>
-  <button class="seta" onclick="press('!B61')"
-          onmouseup="release()">▼</button>
-</div>
-
-<br>
-
-<button class="emerg" onclick="emergency()">
-  🚨 EMERGÊNCIA
-</button>
-
-<br>
-<button onclick="connect()">🔗 CONECTAR</button>
-
-<div id="status">Desconectado</div>
 
 <script>
-  let device;
-  let rxChar;
-  let txChar;
+  // ===== BLE =====
+  let device, rxChar, txChar;
 
-  const SERVICE_UUID        = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-  const CHARACTERISTIC_RX   = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-  const CHARACTERISTIC_TX   = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+  const SERVICE_UUID      = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+  const CHARACTERISTIC_RX = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+  const CHARACTERISTIC_TX = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 
-  async function connect() {
-
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "Sumobix_José-MUXITO" }],
-      optionalServices: [SERVICE_UUID]
-    });
-
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-
-    rxChar = await service.getCharacteristic(CHARACTERISTIC_RX);
-    txChar = await service.getCharacteristic(CHARACTERISTIC_TX);
-
-    await txChar.startNotifications();
-    txChar.addEventListener('characteristicvaluechanged', receive);
-
-    status("Conectado ao robô!");
-  }
-
-  function status(t) {
+  function log(t){
     document.getElementById("status").innerText = t;
   }
 
-  // ===== ENVIO NORMAL =====
-  function send(cmd) {
-    if (!rxChar) return;
-    rxChar.writeValue(new TextEncoder().encode(cmd));
+  async function connect(){
+    try{
+      device = await navigator.bluetooth.requestDevice({
+        filters:[{ name:"Sumobix_José-MUXITO" }],
+        optionalServices:[SERVICE_UUID]
+      });
+
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+
+      rxChar = await service.getCharacteristic(CHARACTERISTIC_RX);
+      txChar = await service.getCharacteristic(CHARACTERISTIC_TX);
+
+      await txChar.startNotifications();
+      txChar.addEventListener('characteristicvaluechanged', receive);
+
+      log("✅ Conectado");
+
+    }catch(e){
+      log("Erro: "+e);
+    }
   }
 
-  // ===== PRESSIONAR SETA =====
-  function press(cmd) {
-    send(cmd);
+  // ===== PROTOCOLO CORRETO =====
+
+  function send(cmd){
+    if(!rxChar) return;
+    rxChar.writeValue(
+      new TextEncoder().encode(cmd)
+    );
   }
 
-  // ===== SOLTAR BOTÃO =====
-  function release() {
-    // envia estado 0 → teu firmware para motores
-    send("!B50");
-    send("!B60");
-    send("!B70");
-    send("!B80");
+  function press(id){
+    send("!B"+id+"1");
   }
 
-  // ===== EMERGÊNCIA =====
-  function emergency() {
-
-    // força parada total como teu código já prevê
-    send("!B50");
-    send("!B60");
-    send("!B70");
-    send("!B80");
-
-    status("🚨 PARAGEM DE EMERGÊNCIA!");
+  function release(id){
+    send("!B"+id+"0");
   }
 
-  // ===== RECEBER DO ESP32 =====
-  function receive(event) {
-    const value = new TextDecoder().decode(event.target.value);
-    status("Robô: " + value);
+  // ===== RECEBER DO ESP =====
+  function receive(e){
+    const v = new TextDecoder().decode(e.target.value);
+    log("Robô: "+v);
   }
-
 </script>
 
 </body>
