@@ -2,103 +2,88 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Sumo Control Pro</title>
+  <title>SUMO PRO CONTROL</title>
 
   <style>
     :root {
-      --bg: #0b0e13;
-      --card: rgba(20,24,32,0.7);
-      --blue: #2b6cff;
-      --green: #00ff88;
-      --red: #ff2b5c;
+      --bg:#0a0c10;
+      --card:#12161c;
+      --neon:#00ff88;
+      --blue:#2b6cff;
     }
 
-    body {
-      background: var(--bg);
-      color: white;
-      font-family: system-ui;
-      margin: 0;
-      display: flex;
-      justify-content: center;
+    body{
+      background:var(--bg);
+      color:white;
+      font-family:system-ui;
+      margin:0;
+      display:flex;
+      justify-content:center;
     }
 
-    .panel {
-      max-width: 420px;
-      width: 100%;
-      padding: 15px;
+    .panel{
+      max-width:460px;
+      width:100%;
+      padding:10px;
     }
 
-    .glass {
-      background: var(--card);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px;
-      padding: 12px;
-      margin-bottom: 10px;
+    .card{
+      background:var(--card);
+      border-radius:20px;
+      padding:12px;
+      margin-bottom:10px;
+      border:1px solid #1d222a;
     }
 
-    h2 {
-      text-align: center;
-      margin: 6px;
-    }
+    .row{display:flex;gap:8px}
 
     /* ===== BOTÕES ===== */
+    .btn{
+      flex:1;
+      height:56px;
+      border:none;
+      border-radius:16px;
+      color:white;
+      font-weight:bold;
+      font-size:16px;
 
-    .btn {
-      border: none;
-      color: white;
-      border-radius: 14px;
-      font-weight: bold;
-      transition: .1s;
-      box-shadow: 0 6px 0 rgba(0,0,0,.3);
+      background:linear-gradient(#1f2530,#0c0f14);
+      box-shadow:
+        inset 0 1px 1px #ffffff22,
+        0 6px 0 #0004;
+
+      transition:.08s;
     }
 
-    .btn:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 rgba(0,0,0,.3);
+    .btn:active{
+      transform:translateY(4px);
+      box-shadow:0 2px 0 #0004;
     }
 
-    /* MODOS */
-    .mode {
-      width: 48%;
-      height: 54px;
-      font-size: 17px;
+    /* DIRECIONAIS */
+    .big{
+      height:90px;
+      font-size:26px;
     }
 
-    .auto   { background: linear-gradient(#0f6,#094); }
-    .manual { background: linear-gradient(#2b6cff,#124); }
-
-    /* DIRECIONAL */
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+    /* SLIDER */
+    .slider{
+      width:100%;
+      accent-color:var(--neon);
     }
 
-    .key {
-      height: 70px;
-      font-size: 22px;
-      background: linear-gradient(#334,#112);
+    /* PAINEL INFO */
+    .info{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      text-align:center;
+      font-size:14px;
     }
 
-    .center { visibility: hidden; }
-
-    #status {
-      text-align: center;
-      padding: 6px;
-      font-size: 15px;
-      color: var(--green);
-    }
-
-    .connect {
-      width: 100%;
-      height: 50px;
-      background: linear-gradient(#666,#222);
-    }
-
-    @media (min-width:700px) {
-      .panel { max-width: 520px; }
-      .key { height: 86px; }
+    /* EFEITO NEON */
+    .active{
+      border:1px solid var(--neon);
+      box-shadow:0 0 10px #0f84;
     }
   </style>
 </head>
@@ -106,120 +91,143 @@
 <body>
 <div class="panel">
 
-  <h2>🤖 SUMO CONTROL</h2>
-
-  <div class="glass">
-    <button class="btn mode manual" onclick="send('!B11')">
-      MODO MANUAL
-    </button>
-
-    <button class="btn mode auto" onclick="send('!B21')">
-      MODO AUTO
-    </button>
+  <!-- ===== MODOS ===== -->
+  <div class="card row">
+    <button class="btn" onclick="sendCmd('!B11')">MANUAL</button>
+    <button class="btn" onclick="sendCmd('!B21')">AUTO</button>
   </div>
 
-  <div class="glass">
-    <div class="grid">
+  <!-- ===== PWM ===== -->
+  <div class="card">
+    Velocidade PWM
+    <input id="pwm" class="slider" type="range" min="120" max="255" value="200"
+           oninput="setPWM(this.value)">
+  </div>
 
-      <div></div>
-      <button class="btn key"
-              onmousedown="press('5')"
-              onmouseup="release('5')"
-              ontouchstart="press('5')"
-              ontouchend="release('5')">▲</button>
-      <div></div>
+  <!-- ===== COMANDO ===== -->
+  <div class="card row">
 
-      <button class="btn key"
-              onmousedown="press('7')"
-              onmouseup="release('7')"
-              ontouchstart="press('7')"
-              ontouchend="release('7')">◄</button>
+    <!-- ESQUERDA: FRENTE/TRÁS -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+      <button class="btn big"
+              onmousedown="press(5)" onmouseup="release(5)"
+              ontouchstart="press(5)" ontouchend="release(5)">▲</button>
 
-      <div class="center"></div>
-
-      <button class="btn key"
-              onmousedown="press('8')"
-              onmouseup="release('8')"
-              ontouchstart="press('8')"
-              ontouchend="release('8')">►</button>
-
-      <div></div>
-      <button class="btn key"
-              onmousedown="press('6')"
-              onmouseup="release('6')"
-              ontouchstart="press('6')"
-              ontouchend="release('6')">▼</button>
-      <div></div>
-
+      <button class="btn big"
+              onmousedown="press(6)" onmouseup="release(6)"
+              ontouchstart="press(6)" ontouchend="release(6)">▼</button>
     </div>
+
+    <!-- DIREITA: CURVAS -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+      <button class="btn big"
+              onmousedown="press(7)" onmouseup="release(7)"
+              ontouchstart="press(7)" ontouchend="release(7)">↺</button>
+
+      <button class="btn big"
+              onmousedown="press(8)" onmouseup="release(8)"
+              ontouchstart="press(8)" ontouchend="release(8)">↻</button>
+    </div>
+
   </div>
 
-  <div class="glass">
-    <button class="btn connect" onclick="connect()">
-      🔗 CONECTAR
-    </button>
-
-    <div id="status">Desconectado</div>
+  <!-- ===== STATUS ===== -->
+  <div class="card info">
+    <div id="st">offline</div>
+    <div id="dist">-- cm</div>
+    <div id="fps">0</div>
   </div>
+
+  <button class="btn" onclick="connect()">CONECTAR</button>
 
 </div>
 
 <script>
-  // ===== BLE =====
-  let device, rxChar, txChar;
+  // ====== BLE ======
+  const SERVICE="6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+  const RX="6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+  const TX="6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 
-  const SERVICE_UUID      = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-  const CHARACTERISTIC_RX = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-  const CHARACTERISTIC_TX = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+  let rxChar, txChar;
+  let queue=[];
+  let busy=false;
 
-  function log(t){
-    document.getElementById("status").innerText = t;
-  }
+  // ---- FILA ANTI-FLOOD ----
+  async function process(){
+    if(busy||!queue.length) return;
+    busy=true;
 
-  async function connect(){
+    const cmd=queue.shift();
     try{
-      device = await navigator.bluetooth.requestDevice({
-        filters:[{ name:"Sumobix_José-MUXITO" }],
-        optionalServices:[SERVICE_UUID]
-      });
-
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService(SERVICE_UUID);
-
-      rxChar = await service.getCharacteristic(CHARACTERISTIC_RX);
-      txChar = await service.getCharacteristic(CHARACTERISTIC_TX);
-
-      await txChar.startNotifications();
-      txChar.addEventListener('characteristicvaluechanged', receive);
-
-      log("✅ Conectado");
-
+      await rxChar.writeValue(
+        new TextEncoder().encode(cmd)
+      );
     }catch(e){
-      log("Erro: "+e);
+      log("erro envio");
     }
+
+    setTimeout(()=>{
+      busy=false;
+      process();
+    },70);       // ← CHAVE DA ESTABILIDADE
   }
 
-  // ===== PROTOCOLO CORRETO =====
-
-  function send(cmd){
-    if(!rxChar) return;
-    rxChar.writeValue(
-      new TextEncoder().encode(cmd)
-    );
+  function sendCmd(c){
+    queue.push(c);
+    process();
   }
 
   function press(id){
-    send("!B"+id+"1");
+    sendCmd("!B"+id+"1");
+    vibrate();
   }
 
   function release(id){
-    send("!B"+id+"0");
+    sendCmd("!B"+id+"0");
   }
 
-  // ===== RECEBER DO ESP =====
-  function receive(e){
-    const v = new TextDecoder().decode(e.target.value);
-    log("Robô: "+v);
+  // ===== CONEXÃO =====
+  async function connect(){
+    try{
+      const dev=await navigator.bluetooth.requestDevice({
+        filters:[{name:"Sumobix_José-MUXITO"}],
+        optionalServices:[SERVICE]
+      });
+
+      const srv=await dev.gatt.connect();
+      const s=await srv.getPrimaryService(SERVICE);
+
+      rxChar=await s.getCharacteristic(RX);
+      txChar=await s.getCharacteristic(TX);
+
+      await txChar.startNotifications();
+      txChar.addEventListener(
+        "characteristicvaluechanged",onData);
+
+      log("conectado");
+    }catch(e){log("falha");}
+  }
+
+  // ===== RECEÇÃO =====
+  function onData(e){
+    const v=new TextDecoder().decode(e.target.value);
+    document.getElementById("st").innerText=v;
+  }
+
+  // ===== PWM (exemplo) =====
+  function setPWM(v){
+    // podes no futuro mapear para comando BLE
+    document.getElementById("fps").innerText=v;
+  }
+
+  // ===== UTIL =====
+  function log(t){
+    document.getElementById("st").innerText=t;
+  }
+
+  function vibrate(){
+    if(navigator.vibrate)
+      navigator.vibrate(20);
   }
 </script>
 
