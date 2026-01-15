@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Controle SumoBot</title>
+
+  <style>
+    body {
+      background: #0e0e0e;
+      color: white;
+      font-family: Arial;
+      text-align: center;
+    }
+
+    button {
+      width: 90px;
+      height: 70px;
+      margin: 6px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    .seta {
+      background: #2b6cff;
+      color: white;
+    }
+
+    .mode {
+      background: #444;
+      color: white;
+      width: 140px;
+    }
+
+    .emerg {
+      background: #ff0033;
+      color: white;
+      width: 200px;
+      height: 80px;
+      font-weight: bold;
+      font-size: 22px;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #0f0;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<h2>🎮 CONTROLE SUMOBOT</h2>
+
+<button class="mode" onclick="send('!B11')">MANUAL</button>
+<button class="mode" onclick="send('!B21')">AUTO</button>
+
+<h3>Movimento</h3>
+
+<div>
+  <button class="seta" onclick="press('!B51')"
+          onmouseup="release()">▲</button>
+</div>
+
+<div>
+  <button class="seta" onclick="press('!B71')"
+          onmouseup="release()">◄</button>
+
+  <button class="seta" onclick="press('!B81')"
+          onmouseup="release()">►</button>
+</div>
+
+<div>
+  <button class="seta" onclick="press('!B61')"
+          onmouseup="release()">▼</button>
+</div>
+
+<br>
+
+<button class="emerg" onclick="emergency()">
+  🚨 EMERGÊNCIA
+</button>
+
+<br>
+<button onclick="connect()">🔗 CONECTAR</button>
+
+<div id="status">Desconectado</div>
+
+<script>
+  let device;
+  let rxChar;
+  let txChar;
+
+  const SERVICE_UUID        = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+  const CHARACTERISTIC_RX   = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+  const CHARACTERISTIC_TX   = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+
+  async function connect() {
+
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "Sumobix_José-MUXITO" }],
+      optionalServices: [SERVICE_UUID]
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+
+    rxChar = await service.getCharacteristic(CHARACTERISTIC_RX);
+    txChar = await service.getCharacteristic(CHARACTERISTIC_TX);
+
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', receive);
+
+    status("Conectado ao robô!");
+  }
+
+  function status(t) {
+    document.getElementById("status").innerText = t;
+  }
+
+  // ===== ENVIO NORMAL =====
+  function send(cmd) {
+    if (!rxChar) return;
+    rxChar.writeValue(new TextEncoder().encode(cmd));
+  }
+
+  // ===== PRESSIONAR SETA =====
+  function press(cmd) {
+    send(cmd);
+  }
+
+  // ===== SOLTAR BOTÃO =====
+  function release() {
+    // envia estado 0 → teu firmware para motores
+    send("!B50");
+    send("!B60");
+    send("!B70");
+    send("!B80");
+  }
+
+  // ===== EMERGÊNCIA =====
+  function emergency() {
+
+    // força parada total como teu código já prevê
+    send("!B50");
+    send("!B60");
+    send("!B70");
+    send("!B80");
+
+    status("🚨 PARAGEM DE EMERGÊNCIA!");
+  }
+
+  // ===== RECEBER DO ESP32 =====
+  function receive(event) {
+    const value = new TextDecoder().decode(event.target.value);
+    status("Robô: " + value);
+  }
+
+</script>
+
+</body>
+</html>
